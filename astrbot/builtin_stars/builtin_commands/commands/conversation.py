@@ -210,13 +210,13 @@ class ConversationCommands:
         if stopped_count > 0:
             message.set_result(
                 MessageEventResult().message(
-                    f"✅ Requested to stop {stopped_count} running tasks."
+                    f"已停止 {stopped_count} 个正在运行的任务。"
                 )
             )
             return
 
         message.set_result(
-            MessageEventResult().message("✅ No running tasks in the current session.")
+            MessageEventResult().message("当前没有正在运行的任务。")
         )
 
     async def new_conv(self, message: AstrMessageEvent) -> None:

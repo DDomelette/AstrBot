@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import logging
+import math
 import os
 import socket
 from datetime import datetime
@@ -93,6 +94,34 @@ def _parse_env_bool(value: str | None, default: bool) -> bool:
 
 
 class AstrBotJSONProvider(DefaultJSONProvider):
+    # [PATCH: infinity-null-sanitizer]
+    # Python's json.dumps outputs NaN/Infinity as-is (e.g. {"x": Infinity}),
+    # but JavaScript's JSON.parse rejects these values, causing frontend errors
+    # like "Cannot read properties of undefined (reading 'metadata')".
+    # This sanitizer recursively replaces NaN/±Infinity with null before
+    # serialization so the browser can always parse the response.
+    # See: antipromptinjector plugin uses float("inf") for permanent bans.
+    # 2024-06 — If this causes conflicts, check for upstream changes to
+    # DefaultJSONProvider.dumps() or plugin JSON handling.
+
+    @staticmethod
+    def _sanitize_floats(obj):
+        if isinstance(obj, float):
+            if math.isnan(obj) or math.isinf(obj):
+                return None
+            return obj
+        elif isinstance(obj, dict):
+            return {
+                k: AstrBotJSONProvider._sanitize_floats(v)
+                for k, v in obj.items()
+            }
+        elif isinstance(obj, list):
+            return [AstrBotJSONProvider._sanitize_floats(item) for item in obj]
+        return obj
+
+    def dumps(self, obj, **kwargs):
+        return super().dumps(self._sanitize_floats(obj), **kwargs)
+
     def default(self, obj):
         if isinstance(obj, datetime):
             return to_utc_isoformat(obj)

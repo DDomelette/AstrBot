@@ -32,21 +32,25 @@ class Main(star.Star):
         """Get session ID and other related information"""
         await self.sid_c.sid(event)
 
+    @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("reset")
     async def reset(self, message: AstrMessageEvent) -> None:
         """Reset conversation history"""
         await self.conversation_c.reset(message)
 
+    @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("stop")
     async def stop(self, message: AstrMessageEvent) -> None:
         """Stop agent execution"""
         await self.conversation_c.stop(message)
 
+    @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("new")
     async def new_conv(self, message: AstrMessageEvent) -> None:
         """Create new conversation"""
         await self.conversation_c.new_conv(message)
 
+    @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("stats")
     async def stats(self, message: AstrMessageEvent) -> None:
         """Show token usage statistics for the current conversation"""

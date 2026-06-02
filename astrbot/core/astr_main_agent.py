@@ -821,7 +821,8 @@ def _append_system_reminders(
     if cfg.get("identifier"):
         user_id = event.message_obj.sender.user_id
         user_nickname = event.message_obj.sender.nickname
-        system_parts.append(f"User ID: {user_id}, Nickname: {user_nickname}")
+        role = getattr(event, "role", "member")
+        system_parts.append(f"User ID: {user_id}, Nickname: {user_nickname}, Role: {role}")
 
     if cfg.get("group_name_display") and event.message_obj.group_id:
         if not event.message_obj.group:
