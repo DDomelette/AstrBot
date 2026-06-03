@@ -281,13 +281,6 @@ class ProviderVolcengineTTS(TTSProvider):
                             audio_chunks.append(base64.b64decode(data["audio"]["data"]))
 
                 if not audio_chunks:
-                    logger.error(
-                        f"[VolcengineTTS V3] DEBUG raw response (first 2000 chars):\n"
-                        f"{raw_text[:2000]}"
-                    )
-                    logger.error(
-                        f"[VolcengineTTS V3] DEBUG raw_len={len(raw_body)}"
-                    )
                     raise Exception(
                         f"火山引擎 TTS 未返回音频数据 (logid={logid}, last_event={last_event})。"
                         f"可能原因: 1) speaker 与 resource_id 不匹配 "

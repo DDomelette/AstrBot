@@ -145,7 +145,7 @@ Copy-Item -Recurse -Force dist/t2i/* ../data/dist/t2i/
 - **分析**: 既然响应格式确定为 `{"code":0,"data":"<base64>"}`，完全不需要 JSON 解析
 - **修复**: 用 `re.search(r'"data"\s*:\s*"([^"]*)"', raw_text, re.DOTALL)` 直接从原始响应匹配 base64 数据，`re.sub(r'\s+', '', b64_str)` 清理空白后 `b64decode`
 - **commit**: `fix: use regex to extract base64 data from volcengine V3 response`
-- **结果**: ⏳ 待测试
+- **结果**: ✅ 通过 — 合成完成 `volcengine_tts_084c8b693cb1.mp3 (2157 bytes)`，provider 状态 `available`
 
 ### 额外修复 — 前端 i18n 显示 raw key
 
