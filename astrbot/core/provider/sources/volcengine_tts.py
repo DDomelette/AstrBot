@@ -23,6 +23,7 @@ import asyncio
 import base64
 import json
 import os
+import re
 import traceback
 import uuid
 
@@ -227,32 +228,27 @@ class ProviderVolcengineTTS(TTSProvider):
                         f"火山引擎 TTS 返回空响应 (logid={logid})，请检查 API Key 和 resource_id 是否正确"
                     )
 
-                # PATCH: 2026-06-03 - V3 unidirectional API returns plain JSON with top-level "data" field,
-                # not the NDJSON streaming format. Handle both formats.
-                # Note: base64 data may contain raw newlines that break json.loads, strip them first.
+                # PATCH: 2026-06-03 - V3 unidirectional API returns plain JSON {"code":0,"data":"<base64>"}
+                # The base64 data may contain embedded newlines that break JSON parsing.
+                # Use regex to extract the base64 payload directly instead of json.loads.
                 audio_chunks: list[bytes] = []
                 last_event = ""
+                raw_text = raw_body.decode("utf-8", errors="replace")
 
-                # --- Try parsing whole response as a single JSON object first ---
-                raw_text = raw_body.decode("utf-8")
-                # Remove newlines from raw text — base64 data may have embedded CR/LF that would break JSON parsing
-                compact_text = raw_text.replace("\r", "").replace("\n", "")
-                try:
-                    obj = json.loads(compact_text)
-                    if "data" in obj and obj["data"] and isinstance(obj["data"], str):
-                        audio_chunks.append(base64.b64decode(obj["data"]))
-                        logger.debug(f"[VolcengineTTS V3] parsed as single JSON (compact), data_len={len(obj['data'])}")
-                except (json.JSONDecodeError, UnicodeDecodeError):
-                    logger.debug(f"[VolcengineTTS V3] compact JSON parse failed, trying raw...")
+                # --- Approach 1: regex extract top-level "data" field (bypasses JSON parsing issues) ---
+                # Match "data":"<base64_content>" where base64_content may span multiple lines
+                match = re.search(r'"data"\s*:\s*"([^"]*)"', raw_text, re.DOTALL)
+                if match:
+                    b64_str = match.group(1)
+                    # Strip all whitespace from base64 string (b64decode ignores whitespace)
+                    b64_str = re.sub(r'\s+', '', b64_str)
                     try:
-                        obj = json.loads(raw_text)
-                        if "data" in obj and obj["data"] and isinstance(obj["data"], str):
-                            audio_chunks.append(base64.b64decode(obj["data"]))
-                            logger.debug(f"[VolcengineTTS V3] parsed as single JSON (raw), data_len={len(obj['data'])}")
-                    except (json.JSONDecodeError, UnicodeDecodeError):
-                        pass
+                        audio_chunks.append(base64.b64decode(b64_str))
+                        logger.debug(f"[VolcengineTTS V3] parsed via regex, b64_len={len(b64_str)}")
+                    except Exception as exc:
+                        logger.error(f"[VolcengineTTS V3] regex b64decode failed: {exc}")
 
-                # --- If single JSON parsing didn't find audio, try NDJSON ---
+                # --- Approach 2: NDJSON (for longer texts that return streaming format) ---
                 if not audio_chunks:
                     lines = raw_text.strip().split("\n")
                     for line in lines:
@@ -287,11 +283,10 @@ class ProviderVolcengineTTS(TTSProvider):
                 if not audio_chunks:
                     logger.error(
                         f"[VolcengineTTS V3] DEBUG raw response (first 2000 chars):\n"
-                        f"{raw_body.decode('utf-8', errors='replace')[:2000]}"
+                        f"{raw_text[:2000]}"
                     )
                     logger.error(
-                        f"[VolcengineTTS V3] DEBUG line count={len(lines)}, "
-                        f"raw_len={len(raw_body)}"
+                        f"[VolcengineTTS V3] DEBUG raw_len={len(raw_body)}"
                     )
                     raise Exception(
                         f"火山引擎 TTS 未返回音频数据 (logid={logid}, last_event={last_event})。"
