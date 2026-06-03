@@ -17,6 +17,7 @@
 | 5 | `dashboard/src/i18n/locales/en-US/features/config-metadata.json` | 修改 | 英文翻译 |
 | 6 | `dashboard/src/i18n/locales/ru-RU/features/config-metadata.json` | 修改 | 俄文翻译 |
 | 7 | `data/dist/` (整个目录) | 重建 | 前端构建产物（`npx vite build` → 复制到 data/dist） |
+| 8 | `dashboard/src/composables/useConfigTextResolver.js` | 修复 | `translateIfKey` 降级逻辑：i18n 未命中时返回 `null` 而非 raw key 字符串（`# PATCH: 2026-06-03`） |
 | — | `astrbot/core/provider/manager.py` | 未修改 | `dynamic_import_provider` 中 `volcengine_tts` case 已存在，类名不变无需改 |
 
 ---
@@ -88,20 +89,24 @@ Copy-Item -Recurse -Force dist/t2i/* ../data/dist/t2i/
 
 1. **音色与 resource_id 不匹配**: `_uranus_` 后缀音色必须用 `seed-tts-2.0`
 2. **bit_rate 未设置**: MP3 格式默认 8k，必须显式设为 128000
-3. **i18n 不显示**: 必须重建前端 dist，仅改源文件不生效
+3. **i18n 必须重建 dist**: 仅改 i18n 源文件不生效，必须 Vite build → 复制到 data/dist/
+
+新增注意事项（2026-06-03 修复）:
+6. **i18n 降级显示 raw key**: `useConfigTextResolver.js` 中 `translateIfKey` 原本在 i18n 未命中时返回 raw key 字符串（如 `provider_group.provider.xxx.description`），导致前端直接显示 key 原文。已修复为返回 `null`，使模板的后备机制（`|| fieldName`）生效
 4. **API Key 来源**: 必须在**新版**控制台 (speech/new) 获取，旧版 token 不可用
 5. **旧配置残留**: WebUI 中需删除旧的 volcengine_tts 条目后重新添加
 
 ## 当前修改状态
 
-> 最后更新: 2026-06-03 17:20 (构建完成时间)
+> 最后更新: 2026-06-03 18:00 (i18n 降级修复 + dist 重建)
 
 | 层级 | 文件 | 状态 | 验证方式 |
 |------|------|:---:|---------|
 | 后端 API | `volcengine_tts.py` | 已部署 | 重启后生效，通过 TTS 测试功能验证 |
 | 后端配置 | `default.py` (默认值 + metadata) | 已部署 | 重启后 API 返回新字段名 |
 | 前端翻译 | `config-metadata.json` (zh-CN/en-US/ru-RU) | 已修改 | 已编译进 JS bundle |
-| 前端 dist | `data/dist/` (Vite 构建产物) | 已重建 | 主 bundle `index-DRmJoat9.js` 与源码产物完全一致 (4,072,066 bytes) |
+| 前端 i18n 降级 | `useConfigTextResolver.js` | 已修复 | `translateIfKey` 未命中时返回 `null`，备用字段名生效 |
+| 前端 dist | `data/dist/` (Vite 构建产物) | 已重建 | 564 个文件，主 bundle 4,072,066 bytes |
 | 路由注册 | `manager.py` | 无需修改 | `dynamic_import_provider` 中 `volcengine_tts` case 已存在 |
 
 ## 预期 WebUI 效果
@@ -143,6 +148,7 @@ API Base URL                     → https://openspeech.bytedance.com/api/v3/tts
 4. 前端 useConfigTextResolver → translateIfKey()
    ↓ 调用 getRaw("provider_group.provider.resource_id.description")
    ↓ 实际查找路径: translations.features['config-metadata'].provider_group.provider.resource_id.description
+   ↓ **v1.1 修复**: 若 getRaw 返回 null → translateIfKey 返回 null → 模板降级显示字段名（而非 raw key 字符串）
    ↓
 5. translations.ts 静态 import config-metadata.json  → Vite 打包进 JS bundle
    ↓
@@ -161,5 +167,5 @@ API Base URL                     → https://openspeech.bytedance.com/api/v3/tts
 1. **强制刷新浏览器**: `Ctrl + Shift + R` (Windows) / `Cmd + Shift + R` (Mac)
 2. **无痕模式测试**: 打开隐私窗口访问 `http://localhost:6185`，排除浏览器缓存
 3. **检查 API 响应**: 浏览器访问 `http://localhost:6185/api/config/provider/template`，搜索 `resource_id`，确认 description 字段值为 `provider_group.provider.resource_id.description`（i18n key 格式，非中文原文）
-4. **检查 JS 加载**: F12 → Network → 刷新页面 → 确认 `index-DRmJoat9.js` 返回 200（非 304 缓存）
+4. **检查 JS 加载**: F12 → Network → 刷新页面 → 确认主 JS bundle（如 `index-6epWLFox.js`）返回 200（非 304 缓存）
 5. **检查 Console**: F12 → Console，看是否有 `[MISSING: ...]` 或红色报错
