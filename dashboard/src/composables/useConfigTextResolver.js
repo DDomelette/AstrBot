@@ -7,7 +7,9 @@ export function useConfigTextResolver(props = {}) {
 
   const translateIfKey = (value) => {
     if (!value || typeof value !== 'string') return value
-    return getRaw(value) ? tm(value) : null // PATCH: 2026-06-03 - return null instead of raw key so template fallback (|| fieldName) works when i18n key is missing
+    // PATCH: 2026-06-03 - only treat dot-separated paths as i18n keys; plain text is returned as-is
+    if (!value.includes('.')) return value
+    return getRaw(value) ? tm(value) : null
   }
 
   const hasPluginI18n = () => {
