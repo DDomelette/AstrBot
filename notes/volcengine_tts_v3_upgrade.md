@@ -19,6 +19,7 @@
 | 7 | `data/dist/` (整个目录) | 重建 | 前端构建产物（`npx vite build` → 复制到 data/dist） |
 | 8 | `dashboard/src/composables/useConfigTextResolver.js` | 修复 | `translateIfKey` 降级逻辑：i18n 未命中时返回 `null` 而非 raw key 字符串（`# PATCH: 2026-06-03`） |
 | 9 | `astrbot/core/provider/sources/volcengine_tts.py` (L266) | 修复 | V3 API 成功码为 `20000000` 而非 `0`，原代码将成功响应误判为错误 |
+| 10 | `astrbot/core/provider/sources/volcengine_tts.py` (response parsing) | 重写 | 改正则提取 base64，不再依赖 JSON 解析（见纠错历史第1~5次）
 | — | `astrbot/core/provider/manager.py` | 未修改 | `dynamic_import_provider` 中 `volcengine_tts` case 已存在，类名不变无需改 |
 
 ---
@@ -96,6 +97,66 @@ Copy-Item -Recurse -Force dist/t2i/* ../data/dist/t2i/
 6. **i18n 降级显示 raw key**: `useConfigTextResolver.js` 中 `translateIfKey` 原本在 i18n 未命中时返回 raw key 字符串（如 `provider_group.provider.xxx.description`），导致前端直接显示 key 原文。已修复为返回 `null`，使模板的后备机制（`|| fieldName`）生效
 4. **API Key 来源**: 必须在**新版**控制台 (speech/new) 获取，旧版 token 不可用
 5. **旧配置残留**: WebUI 中需删除旧的 volcengine_tts 条目后重新添加
+
+## 纠错历史 (Troubleshooting Timeline)
+
+> 以下按时间顺序记录每次测试 → 报错 → 分析 → 修复的完整链路。每次修复对应一个 git commit。
+
+### 第 1 次 — `code 20000000` 被误判为错误
+
+- **时间**: 19:28
+- **现象**: `code=20000000, message=OK` 被当作错误抛出
+- **分析**: V3 API 的 NDJSON 流式事件中 `code=20000000` 是成功码，原代码只认 `code != 0` 为错误
+- **修复**: `code != 0` → `code != 20000000`
+- **commit**: `fix: volcengine TTS V3 success code 20000000 was treated as error`
+- **结果**: ❌ 失败，下一个事件 `code=0` 又触发错误
+
+### 第 2 次 — `code 0` 也被误判
+
+- **时间**: 19:39
+- **现象**: `code=0, message=` 被当作错误抛出
+- **分析**: 摘要事件 (`TTSResponse`) 的成功码是 `0`，不是 `20000000`
+- **修复**: `code != 20000000` → `code not in (0, 20000000)`
+- **commit**: `fix: accept both 0 and 20000000 as volcengine TTS V3 success codes`
+- **结果**: ❌ 失败，"未返回音频数据"
+
+### 第 3 次 — 响应格式不是 NDJSON
+
+- **时间**: 19:43
+- **现象**: 无报错但 `last_event=` 为空，无音频数据
+- **分析**: 添加 debug 日志打印原始响应，发现 API 返回的是**单个 JSON 对象** `{"code":0, "data":"base64..."}`，不是 NDJSON 流。音频在顶层 `data` 字段，而代码在找 `data["audio"]["data"]`
+- **修复**: 新增整体 JSON 解析路径，从 `obj["data"]` 直接提取 base64
+- **commit**: `debug: add raw response dump` + `fix: volcengine V3 response is plain JSON with top-level data, not NDJSON`
+- **结果**: ❌ 失败，`json.loads()` 解析报错（因为 base64 里有原始换行符）
+
+### 第 4 次 — base64 含换行符破坏 JSON 解析
+
+- **时间**: 19:52
+- **现象**: JSON 解析失败，`json.JSONDecodeError`
+- **分析**: 火山引擎返回的 base64 数据里嵌入了原始 `\r\n` 换行符（每次约 6~7 行，13KB~15KB 数据），导致 `json.loads()` 失败
+- **修复**: 解析前 `replace("\r", "").replace("\n", "")` 去掉换行
+- **commit**: `fix: strip newlines from volcengine V3 response before JSON parse`
+- **结果**: ❌ 失败，换行符清除不彻底或被 JSON 解析器以其他方式拒绝
+
+### 第 5 次 — 放弃 JSON 解析，改用正则提取
+
+- **时间**: 19:57
+- **现象**: `json.loads()` 持续失败，多次尝试无效
+- **分析**: 既然响应格式确定为 `{"code":0,"data":"<base64>"}`，完全不需要 JSON 解析
+- **修复**: 用 `re.search(r'"data"\s*:\s*"([^"]*)"', raw_text, re.DOTALL)` 直接从原始响应匹配 base64 数据，`re.sub(r'\s+', '', b64_str)` 清理空白后 `b64decode`
+- **commit**: `fix: use regex to extract base64 data from volcengine V3 response`
+- **结果**: ⏳ 待测试
+
+### 额外修复 — 前端 i18n 显示 raw key
+
+- **时间**: 17:51
+- **现象**: 配置页显示 `provider_group.provider.resource_id.description` 等原始 key
+- **分析**: 两个原因 — (1) dist 未重建，i18n JSON 是旧版；(2) `translateIfKey` 找不到翻译时返回 raw key 字符串而非 `null`，导致模板备选机制失效
+- **修复**: 改 `translateIfKey` 返回 `null` + 重建 dist（564 文件）
+- **commit**: `fix: i18n fallback shows raw key when translation is missing`
+- **结果**: ✅ 通过，前端正常显示中文标签
+
+---
 
 ## 当前修改状态
 
