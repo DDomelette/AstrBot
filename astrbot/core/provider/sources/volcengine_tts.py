@@ -261,10 +261,10 @@ class ProviderVolcengineTTS(TTSProvider):
                         raise Exception(
                             f"火山引擎 TTS API 错误 (logid={logid}): {json.dumps(error_info, ensure_ascii=False)}"
                         )
-                    # PATCH: 2026-06-03 - V3 success code is 20000000, not 0
+                    # PATCH: 2026-06-03 - V3 audio events use code 20000000, summary events use code 0
                     if "code" in data:
                         code = data.get("code", 0)
-                        if code != 20000000:
+                        if code not in (0, 20000000):
                             raise Exception(
                                 f"火山引擎 TTS API 错误 (logid={logid}): "
                                 f"code={code}, message={data.get('message', 'unknown')}"
