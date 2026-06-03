@@ -227,59 +227,53 @@ class ProviderVolcengineTTS(TTSProvider):
                         f"火山引擎 TTS 返回空响应 (logid={logid})，请检查 API Key 和 resource_id 是否正确"
                     )
 
-                # 解析 NDJSON
+                # PATCH: 2026-06-03 - V3 unidirectional API returns plain JSON with top-level "data" field,
+                # not the NDJSON streaming format. Handle both formats.
                 audio_chunks: list[bytes] = []
-                lines = raw_body.decode("utf-8").strip().split("\n")
                 last_event = ""
 
-                for line in lines:
-                    line = line.strip()
-                    if not line:
-                        continue
+                # --- Try parsing whole response as a single JSON object first ---
+                raw_text = raw_body.decode("utf-8")
+                try:
+                    obj = json.loads(raw_text)
+                    if "data" in obj and obj["data"] and isinstance(obj["data"], str):
+                        audio_chunks.append(base64.b64decode(obj["data"]))
+                        logger.debug(f"[VolcengineTTS V3] parsed as single JSON, data_len={len(obj['data'])}")
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    # Not valid JSON → try NDJSON line-by-line
+                    pass
 
-                    try:
-                        data = json.loads(line)
-                    except json.JSONDecodeError:
-                        # 可能整个响应是一个大 JSON，尝试整体解析
-                        logger.debug(f"[VolcengineTTS V3] 单行解析失败，尝试整体解析...")
+                # --- If single JSON parsing didn't find audio, try NDJSON ---
+                if not audio_chunks:
+                    lines = raw_text.strip().split("\n")
+                    for line in lines:
+                        line = line.strip()
+                        if not line:
+                            continue
                         try:
-                            data = json.loads(raw_body.decode("utf-8"))
+                            data = json.loads(line)
                         except json.JSONDecodeError:
-                            logger.warning(
-                                f"[VolcengineTTS V3] 无法解析的响应片段: {line[:200]}"
-                            )
                             continue
 
-                        # 整体解析成功，提取音频后跳出循环
+                        if "error" in data:
+                            raise Exception(
+                                f"火山引擎 TTS API 错误 (logid={logid}): {json.dumps(data['error'], ensure_ascii=False)}"
+                            )
+                        if "code" in data:
+                            code = data.get("code", 0)
+                            if code not in (0, 20000000):
+                                raise Exception(
+                                    f"火山引擎 TTS API 错误 (logid={logid}): "
+                                    f"code={code}, message={data.get('message', 'unknown')}"
+                                )
+
+                        event = data.get("event", "")
+                        if event:
+                            last_event = event
+                            logger.debug(f"[VolcengineTTS V3] event={event}")
+
                         if "audio" in data and "data" in data["audio"]:
                             audio_chunks.append(base64.b64decode(data["audio"]["data"]))
-                        break
-
-                    # --- 检查 API 错误 ---
-                    if "error" in data:
-                        error_info = data["error"]
-                        raise Exception(
-                            f"火山引擎 TTS API 错误 (logid={logid}): {json.dumps(error_info, ensure_ascii=False)}"
-                        )
-                    # PATCH: 2026-06-03 - V3 audio events use code 20000000, summary events use code 0
-                    if "code" in data:
-                        code = data.get("code", 0)
-                        if code not in (0, 20000000):
-                            raise Exception(
-                                f"火山引擎 TTS API 错误 (logid={logid}): "
-                                f"code={code}, message={data.get('message', 'unknown')}"
-                            )
-
-                    # --- 记录事件 ---
-                    event = data.get("event", "")
-                    if event:
-                        last_event = event
-                        logger.debug(f"[VolcengineTTS V3] event={event}")
-
-                    # --- 提取 base64 音频数据 ---
-                    if "audio" in data and "data" in data["audio"]:
-                        audio_b64 = data["audio"]["data"]
-                        audio_chunks.append(base64.b64decode(audio_b64))
 
                 if not audio_chunks:
                     logger.error(
