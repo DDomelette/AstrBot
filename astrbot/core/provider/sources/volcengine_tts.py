@@ -187,10 +187,10 @@ class ProviderVolcengineTTS(TTSProvider):
 
         payload = self._build_payload(text)
 
-        logger.info(f"[VolcengineTTS V3] text_len={len(text)}, text_head={repr(text[:60])}")
-        logger.info(f"[VolcengineTTS V3] URL={self.api_base}")
-        logger.info(f"[VolcengineTTS V3] resource_id={self.resource_id}, speaker={self.speaker}")
-        logger.info(f"[VolcengineTTS V3] speech_rate={self.speech_rate}, loudness_rate={self.loudness_rate}, pitch={self.pitch}")
+        logger.debug(f"[VolcengineTTS V3] text_len={len(text)}, text_head={repr(text[:60])}")
+        logger.debug(f"[VolcengineTTS V3] URL={self.api_base}")
+        logger.debug(f"[VolcengineTTS V3] resource_id={self.resource_id}, speaker={self.speaker}")
+        logger.debug(f"[VolcengineTTS V3] speech_rate={self.speech_rate}, loudness_rate={self.loudness_rate}, pitch={self.pitch}")
         logger.debug(f"[VolcengineTTS V3] model={self.model or '(default)'}")
 
         try:
@@ -239,7 +239,7 @@ class ProviderVolcengineTTS(TTSProvider):
                 # --- Approach 1: NDJSON (streaming format — primary for unidirectional API) ---
                 lines = [l for l in raw_text.strip().split("\n") if l.strip()]
                 if len(lines) > 1:
-                    logger.info(f"[VolcengineTTS V3] NDJSON mode: {len(lines)} lines, {len(raw_body)} bytes")
+                    logger.debug(f"[VolcengineTTS V3] NDJSON mode: {len(lines)} lines, {len(raw_body)} bytes")
                     for line in lines:
                         line = line.strip()
                         try:
@@ -275,7 +275,7 @@ class ProviderVolcengineTTS(TTSProvider):
 
                 # --- Approach 2: single JSON (fallback for short texts) ---
                 if not audio_chunks:
-                    logger.info(f"[VolcengineTTS V3] single JSON mode, {len(raw_body)} bytes")
+                    logger.debug(f"[VolcengineTTS V3] single JSON mode, {len(raw_body)} bytes")
                     obj = json.loads(raw_text)
                     if "data" in obj and obj["data"] and isinstance(obj["data"], str):
                         b64_str = re.sub(r'\s+', '', obj["data"])

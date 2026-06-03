@@ -145,7 +145,16 @@ Copy-Item -Recurse -Force dist/t2i/* ../data/dist/t2i/
 - **分析**: 既然响应格式确定为 `{"code":0,"data":"<base64>"}`，完全不需要 JSON 解析
 - **修复**: 用 `re.search(r'"data"\s*:\s*"([^"]*)"', raw_text, re.DOTALL)` 直接从原始响应匹配 base64 数据，`re.sub(r'\s+', '', b64_str)` 清理空白后 `b64decode`
 - **commit**: `fix: use regex to extract base64 data from volcengine V3 response`
-- **结果**: ✅ 通过 — 合成完成 `volcengine_tts_084c8b693cb1.mp3 (2157 bytes)`，provider 状态 `available`
+- **结果**: ✅ 通过 — 合成完成 `volcengine_tts_084c8b693cb1.mp3 (2157 bytes)`，provider 状态 `available`（但仅限短文本，长文本被截断 — 见第 6 次）
+
+### 第 6 次 — 长文本只合成前 2KB，正则只抓了第一段
+
+- **时间**: 20:11
+- **现象**: 短文本 `"hi"` 正常，长文本 211 字只合成出 2349 字节的音频（一声"滴"）
+- **分析**: 日志显示 API 返回了 534KB 响应，但正则 `re.search` 只匹配到了第一个 `"data"` 字段就停了。长文本时 API 返回 NDJSON 流式格式（多行），正则只抓第一行
+- **修复**: 解析顺序反转 — **NDJSON 优先**。先按 `\n` 分割行，多行 = NDJSON 模式，逐行提取所有 `"data"` 音频段并拼接。单行或无音频才降到整体 JSON 解析
+- **commit**: `fix: prioritize NDJSON parsing for volcengine TTS to capture all audio segments`
+- **结果**: ✅ 通过 — 98 字文本 → 67 行 NDJSON → 65 个片段 → 203,565 字节 MP3
 
 ### 额外修复 — 前端 i18n 显示 raw key
 
