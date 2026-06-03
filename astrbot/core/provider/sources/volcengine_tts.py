@@ -187,10 +187,11 @@ class ProviderVolcengineTTS(TTSProvider):
 
         payload = self._build_payload(text)
 
-        logger.debug(f"[VolcengineTTS V3] URL={self.api_base}")
-        logger.debug(f"[VolcengineTTS V3] resource_id={self.resource_id}, speaker={self.speaker}")
-        logger.debug(f"[VolcengineTTS V3] speech_rate={self.speech_rate}, loudness_rate={self.loudness_rate}, pitch={self.pitch}")
-        logger.debug(f"[VolcengineTTS V3] text_len={len(text)}, model={self.model or '(default)'}")
+        logger.info(f"[VolcengineTTS V3] text_len={len(text)}, text_head={repr(text[:60])}")
+        logger.info(f"[VolcengineTTS V3] URL={self.api_base}")
+        logger.info(f"[VolcengineTTS V3] resource_id={self.resource_id}, speaker={self.speaker}")
+        logger.info(f"[VolcengineTTS V3] speech_rate={self.speech_rate}, loudness_rate={self.loudness_rate}, pitch={self.pitch}")
+        logger.debug(f"[VolcengineTTS V3] model={self.model or '(default)'}")
 
         try:
             async with (
@@ -237,6 +238,7 @@ class ProviderVolcengineTTS(TTSProvider):
 
                 # --- Approach 1: regex extract top-level "data" field (bypasses JSON parsing issues) ---
                 # Match "data":"<base64_content>" where base64_content may span multiple lines
+                logger.info(f"[VolcengineTTS V3] raw response length={len(raw_body)} bytes")
                 match = re.search(r'"data"\s*:\s*"([^"]*)"', raw_text, re.DOTALL)
                 if match:
                     b64_str = match.group(1)
@@ -244,7 +246,7 @@ class ProviderVolcengineTTS(TTSProvider):
                     b64_str = re.sub(r'\s+', '', b64_str)
                     try:
                         audio_chunks.append(base64.b64decode(b64_str))
-                        logger.debug(f"[VolcengineTTS V3] parsed via regex, b64_len={len(b64_str)}")
+                        logger.info(f"[VolcengineTTS V3] parsed via regex, b64_len={len(b64_str)}, decoded={len(audio_chunks[0])} bytes")
                     except Exception as exc:
                         logger.error(f"[VolcengineTTS V3] regex b64decode failed: {exc}")
 
