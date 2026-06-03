@@ -229,19 +229,28 @@ class ProviderVolcengineTTS(TTSProvider):
 
                 # PATCH: 2026-06-03 - V3 unidirectional API returns plain JSON with top-level "data" field,
                 # not the NDJSON streaming format. Handle both formats.
+                # Note: base64 data may contain raw newlines that break json.loads, strip them first.
                 audio_chunks: list[bytes] = []
                 last_event = ""
 
                 # --- Try parsing whole response as a single JSON object first ---
                 raw_text = raw_body.decode("utf-8")
+                # Remove newlines from raw text — base64 data may have embedded CR/LF that would break JSON parsing
+                compact_text = raw_text.replace("\r", "").replace("\n", "")
                 try:
-                    obj = json.loads(raw_text)
+                    obj = json.loads(compact_text)
                     if "data" in obj and obj["data"] and isinstance(obj["data"], str):
                         audio_chunks.append(base64.b64decode(obj["data"]))
-                        logger.debug(f"[VolcengineTTS V3] parsed as single JSON, data_len={len(obj['data'])}")
+                        logger.debug(f"[VolcengineTTS V3] parsed as single JSON (compact), data_len={len(obj['data'])}")
                 except (json.JSONDecodeError, UnicodeDecodeError):
-                    # Not valid JSON → try NDJSON line-by-line
-                    pass
+                    logger.debug(f"[VolcengineTTS V3] compact JSON parse failed, trying raw...")
+                    try:
+                        obj = json.loads(raw_text)
+                        if "data" in obj and obj["data"] and isinstance(obj["data"], str):
+                            audio_chunks.append(base64.b64decode(obj["data"]))
+                            logger.debug(f"[VolcengineTTS V3] parsed as single JSON (raw), data_len={len(obj['data'])}")
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        pass
 
                 # --- If single JSON parsing didn't find audio, try NDJSON ---
                 if not audio_chunks:
