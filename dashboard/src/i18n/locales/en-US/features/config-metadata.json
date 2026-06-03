@@ -1321,21 +1321,45 @@
       "gemini_embedding": {
         "hint": "Gemini Embedding does not require manually adding /v1beta."
       },
-      "volcengine_cluster": {
-        "description": "Volcengine cluster",
-        "hint": "For voice cloning models, choose volcano_icl or volcano_icl_concurr; default is volcano_tts."
+      "resource_id": {
+        "description": "Model / Resource",
+        "hint": "seed-tts-2.0 (TTS 2.0) | seed-tts-1.0 (TTS 1.0) | seed-icl-2.0 (Voice Cloning 2.0) | seed-icl-1.0 (Voice Cloning 1.0)"
       },
-      "volcengine_voice_type": {
-        "description": "Volcengine voice",
-        "hint": "Enter voice id (Voice_type)."
+      "speaker": {
+        "description": "Speaker",
+        "hint": "Voice ID, e.g. zh_female_meilinvyou_uranus_bigtts. See https://www.volcengine.com/docs/6561/1257544"
       },
-      "volcengine_speed_ratio": {
-        "description": "Speech rate",
-        "hint": "Speech rate, range 0.2 to 3.0, default 1.0."
+      "format": {
+        "description": "Audio Format",
+        "hint": "mp3 / ogg_opus / pcm"
       },
-      "volcengine_volume_ratio": {
+      "sample_rate": {
+        "description": "Sample Rate",
+        "hint": "8000/16000/22050/24000/32000/44100/48000"
+      },
+      "bit_rate": {
+        "description": "Bit Rate",
+        "hint": "Recommended 128000 for MP3. Default 8k if omitted, resulting in poor quality"
+      },
+      "speech_rate": {
+        "description": "Speech Rate",
+        "hint": "Range -50~100, default 0. 100 = 2x speed, -50 = 0.5x speed"
+      },
+      "loudness_rate": {
         "description": "Volume",
-        "hint": "Volume, range 0.0 to 2.0, default 1.0."
+        "hint": "Range -50~100, default 0. 100 = 2x volume, -50 = 0.5x volume"
+      },
+      "pitch": {
+        "description": "Pitch",
+        "hint": "Range -12~12, default 0. Positive = higher, negative = lower"
+      },
+      "emotion": {
+        "description": "Emotion",
+        "hint": "e.g. tender/happy/sad/storytelling. Only supported by certain voices"
+      },
+      "model": {
+        "description": "Model Subtype",
+        "hint": "Only for Voice Cloning 2.0: seed-tts-2.0-standard / seed-tts-2.0-expressive"
       },
       "azure_tts_voice": {
         "description": "Voice style",

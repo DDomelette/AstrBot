@@ -1740,6 +1740,9 @@ CONFIG_METADATA_2 = {
                         "timeout": 20,
                         "proxy": "",
                     },
+                    # [PATCH: 2026-06-03] 升级为 V3 API 配置项
+                    # 旧字段 appid/volcengine_cluster/volcengine_voice_type/volcengine_speed_ratio 已移除
+                    # 新字段: resource_id(模型选择), speaker(音色), speech_rate(语调), loudness_rate(音量), pitch(音调), emotion(情感), model(子模型)
                     "火山引擎_TTS(API)": {
                         "id": "volcengine_tts",
                         "type": "volcengine_tts",
@@ -1747,12 +1750,18 @@ CONFIG_METADATA_2 = {
                         "provider_type": "text_to_speech",
                         "enable": False,
                         "api_key": "",
-                        "appid": "",
-                        "volcengine_cluster": "volcano_tts",
-                        "volcengine_voice_type": "",
-                        "volcengine_speed_ratio": 1.0,
-                        "api_base": "https://openspeech.bytedance.com/api/v1/tts",
-                        "timeout": 20,
+                        "resource_id": "seed-tts-2.0",
+                        "speaker": "",
+                        "format": "mp3",
+                        "sample_rate": 24000,
+                        "bit_rate": 128000,
+                        "speech_rate": 0,
+                        "loudness_rate": 0,
+                        "pitch": 0,
+                        "emotion": "",
+                        "model": "",
+                        "api_base": "https://openspeech.bytedance.com/api/v3/tts/unidirectional",
+                        "timeout": 30,
                         "proxy": "",
                     },
                     "Gemini TTS": {
@@ -2165,25 +2174,57 @@ CONFIG_METADATA_2 = {
                         "description": "API Base URL",
                         "type": "string",
                     },
-                    "volcengine_cluster": {
+                    # [PATCH: 2026-06-03] V3 API 字段元数据
+                    # 旧字段 volcengine_cluster/volcengine_voice_type/volcengine_speed_ratio/volcengine_volume_ratio 已移除
+                    "resource_id": {
                         "type": "string",
-                        "description": "火山引擎集群",
-                        "hint": "若使用语音复刻大模型，可选volcano_icl或volcano_icl_concurr，默认使用volcano_tts",
+                        "description": "模型/资源选择",
+                        "hint": "seed-tts-2.0(语音合成2.0) | seed-tts-1.0(语音合成1.0) | seed-icl-2.0(声音复刻2.0) | seed-icl-1.0(声音复刻1.0)",
                     },
-                    "volcengine_voice_type": {
+                    "speaker": {
                         "type": "string",
-                        "description": "火山引擎音色",
-                        "hint": "输入声音id(Voice_type)",
+                        "description": "发音人",
+                        "hint": "音色ID，如 zh_female_meilinvyou_uranus_bigtts。详见 https://www.volcengine.com/docs/6561/1257544",
                     },
-                    "volcengine_speed_ratio": {
-                        "type": "float",
-                        "description": "语速设置",
-                        "hint": "语速设置，范围为 0.2 到 3.0,默认值为 1.0",
+                    "format": {
+                        "type": "string",
+                        "description": "音频格式",
+                        "hint": "mp3 / ogg_opus / pcm",
                     },
-                    "volcengine_volume_ratio": {
-                        "type": "float",
-                        "description": "音量设置",
-                        "hint": "音量设置，范围为 0.0 到 2.0,默认值为 1.0",
+                    "sample_rate": {
+                        "type": "int",
+                        "description": "采样率",
+                        "hint": "8000/16000/22050/24000/32000/44100/48000",
+                    },
+                    "bit_rate": {
+                        "type": "int",
+                        "description": "比特率",
+                        "hint": "MP3格式建议128000，不传则默认8k音质差",
+                    },
+                    "speech_rate": {
+                        "type": "int",
+                        "description": "语调(语速)",
+                        "hint": "范围-50~100，默认0。100=2倍速，-50=0.5倍速",
+                    },
+                    "loudness_rate": {
+                        "type": "int",
+                        "description": "音量",
+                        "hint": "范围-50~100，默认0。100=2倍音量，-50=0.5倍音量",
+                    },
+                    "pitch": {
+                        "type": "int",
+                        "description": "音调",
+                        "hint": "范围-12~12，默认0。正值升调，负值降调",
+                    },
+                    "emotion": {
+                        "type": "string",
+                        "description": "情感",
+                        "hint": "如 tender/happy/sad/storytelling。仅部分音色支持",
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "模型子类型",
+                        "hint": "仅声音复刻2.0生效: seed-tts-2.0-standard(标准) / seed-tts-2.0-expressive(表现力)",
                     },
                     "azure_tts_voice": {
                         "type": "string",

@@ -1318,21 +1318,45 @@
             "gemini_embedding": {
                 "hint": "Gemini Embedding не требует ручного добавления /v1beta."
             },
-            "volcengine_cluster": {
-                "description": "Кластер Volcengine",
-                "hint": "Для моделей клонирования голоса выберите volcano_icl или volcano_icl_concurr; по умолчанию volcano_tts."
+            "resource_id": {
+                "description": "Модель / Ресурс",
+                "hint": "seed-tts-2.0 (TTS 2.0) | seed-tts-1.0 (TTS 1.0) | seed-icl-2.0 (Клонирование 2.0) | seed-icl-1.0 (Клонирование 1.0)"
             },
-            "volcengine_voice_type": {
-                "description": "Голос Volcengine",
-                "hint": "Введите ID голоса (Voice_type)."
+            "speaker": {
+                "description": "Диктор",
+                "hint": "ID голоса, напр. zh_female_meilinvyou_uranus_bigtts. См. https://www.volcengine.com/docs/6561/1257544"
             },
-            "volcengine_speed_ratio": {
+            "format": {
+                "description": "Формат аудио",
+                "hint": "mp3 / ogg_opus / pcm"
+            },
+            "sample_rate": {
+                "description": "Частота дискретизации",
+                "hint": "8000/16000/22050/24000/32000/44100/48000"
+            },
+            "bit_rate": {
+                "description": "Битрейт",
+                "hint": "Рекомендуется 128000 для MP3. По умолчанию 8k — плохое качество"
+            },
+            "speech_rate": {
                 "description": "Скорость речи",
-                "hint": "Скорость речи, от 0.2 до 3.0, по умолчанию 1.0."
+                "hint": "Диапазон -50~100, по умолчанию 0. 100 = 2x, -50 = 0.5x"
             },
-            "volcengine_volume_ratio": {
+            "loudness_rate": {
                 "description": "Громкость",
-                "hint": "Громкость, от 0.0 до 2.0, по умолчанию 1.0."
+                "hint": "Диапазон -50~100, по умолчанию 0. 100 = 2x, -50 = 0.5x"
+            },
+            "pitch": {
+                "description": "Тон",
+                "hint": "Диапазон -12~12, по умолчанию 0. + = выше, - = ниже"
+            },
+            "emotion": {
+                "description": "Эмоция",
+                "hint": "Напр. tender/happy/sad/storytelling. Поддерживается не всеми голосами"
+            },
+            "model": {
+                "description": "Подтип модели",
+                "hint": "Только для Voice Cloning 2.0: seed-tts-2.0-standard / seed-tts-2.0-expressive"
             },
             "azure_tts_voice": {
                 "description": "Стиль голоса",
