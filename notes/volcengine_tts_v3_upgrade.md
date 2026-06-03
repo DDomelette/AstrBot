@@ -18,6 +18,7 @@
 | 6 | `dashboard/src/i18n/locales/ru-RU/features/config-metadata.json` | 修改 | 俄文翻译 |
 | 7 | `data/dist/` (整个目录) | 重建 | 前端构建产物（`npx vite build` → 复制到 data/dist） |
 | 8 | `dashboard/src/composables/useConfigTextResolver.js` | 修复 | `translateIfKey` 降级逻辑：i18n 未命中时返回 `null` 而非 raw key 字符串（`# PATCH: 2026-06-03`） |
+| 9 | `astrbot/core/provider/sources/volcengine_tts.py` (L266) | 修复 | V3 API 成功码为 `20000000` 而非 `0`，原代码将成功响应误判为错误 |
 | — | `astrbot/core/provider/manager.py` | 未修改 | `dynamic_import_provider` 中 `volcengine_tts` case 已存在，类名不变无需改 |
 
 ---
