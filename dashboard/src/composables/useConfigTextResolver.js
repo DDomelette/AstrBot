@@ -9,7 +9,7 @@ export function useConfigTextResolver(props = {}) {
     if (!value || typeof value !== 'string') return value
     // PATCH: 2026-06-03 - only treat dot-separated paths as i18n keys; plain text is returned as-is
     if (!value.includes('.')) return value
-    return getRaw(value) ? tm(value) : null
+    return getRaw(value) ? tm(value) : value
   }
 
   const hasPluginI18n = () => {
