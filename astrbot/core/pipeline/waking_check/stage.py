@@ -68,6 +68,10 @@ class WakingCheckStage(Stage):
             "ignore_at_all",
             False,
         )
+        self.disable_at_wake = self.ctx.astrbot_config["platform_settings"].get(
+            "disable_at_wake",
+            False,
+        )  # PATCH: 2026-06-07 disable @/reply wake - read config switch
         self.disable_builtin_commands = self.ctx.astrbot_config.get(
             "disable_builtin_commands", False
         )
@@ -118,7 +122,9 @@ class WakingCheckStage(Stage):
                 event.is_wake = True
                 event.message_str = event.message_str[len(wake_prefix) :].strip()
                 break
-        if not is_wake:
+        if (
+            not is_wake and not self.disable_at_wake
+        ):  # PATCH: 2026-06-07 skip @/reply wake when disabled
             # 检查是否有at消息 / at全体成员消息 / 引用了bot的消息
             for message in messages:
                 if (

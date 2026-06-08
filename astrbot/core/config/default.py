@@ -94,6 +94,7 @@ DEFAULT_CONFIG = {
         "friend_message_needs_wake_prefix": False,
         "ignore_bot_self_message": False,
         "ignore_at_all": False,
+        "disable_at_wake": False,  # PATCH: 2026-06-07 disable @/reply wake in group chat
     },
     "provider_sources": [],  # provider sources
     "provider": [],  # models from provider_sources
@@ -1023,6 +1024,10 @@ CONFIG_METADATA_2 = {
                     "ignore_at_all": {
                         "type": "bool",
                         "hint": "启用后，机器人会忽略 @ 全体成员 的消息事件。",
+                    },
+                    "disable_at_wake": {  # PATCH: 2026-06-07 schema detail for disable @/reply wake
+                        "type": "bool",
+                        "hint": "启用后，群聊中 @ 机器人 / @全体成员 / 引用机器人的消息均不唤醒。私聊和 wake_prefix 命令仍正常。",
                     },
                     "segmented_reply": {
                         "type": "object",
@@ -3996,6 +4001,10 @@ CONFIG_METADATA_3 = {
                     },
                     "platform_settings.ignore_at_all": {
                         "description": "是否忽略 @ 全体成员事件",
+                        "type": "bool",
+                    },
+                    "platform_settings.disable_at_wake": {  # PATCH: 2026-06-07 quick-config entry for disable @/reply wake
+                        "description": "群聊中 @/引用机器人不唤醒",
                         "type": "bool",
                     },
                     "platform_settings.no_permission_reply": {
